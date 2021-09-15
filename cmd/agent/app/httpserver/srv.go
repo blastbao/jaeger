@@ -30,14 +30,19 @@ import (
 // NewHTTPServer creates a new server that hosts an HTTP/JSON endpoint for clients
 // to query for sampling strategies and baggage restrictions.
 func NewHTTPServer(hostPort string, manager configmanager.ClientConfigManager, mFactory metrics.Factory, logger *zap.Logger) *http.Server {
+
 	handler := clientcfghttp.NewHTTPHandler(clientcfghttp.HTTPHandlerParams{
 		ConfigManager:          manager,
 		MetricsFactory:         mFactory,
 		LegacySamplingEndpoint: true,
 	})
+
 	r := mux.NewRouter()
+
 	handler.RegisterRoutes(r)
+
 	errorLog, _ := zap.NewStdLogAt(logger, zapcore.ErrorLevel)
+
 	return &http.Server{
 		Addr:     hostPort,
 		Handler:  r,

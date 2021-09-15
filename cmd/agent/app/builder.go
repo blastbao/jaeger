@@ -36,9 +36,9 @@ import (
 )
 
 const (
-	defaultQueueSize     = 1000
-	defaultMaxPacketSize = 65000
-	defaultServerWorkers = 10
+	defaultQueueSize     = 1000		// 队列大小
+	defaultMaxPacketSize = 65000	// 最大包大小
+	defaultServerWorkers = 10		// 处理 worker 数目
 
 	jaegerModel Model = "jaeger"
 	zipkinModel Model = "zipkin"
@@ -47,7 +47,7 @@ const (
 	binaryProtocol  Protocol = "binary"
 )
 
-var defaultHTTPServerHostPort = ":" + strconv.Itoa(ports.AgentConfigServerHTTP)
+var defaultHTTPServerHostPort = ":" + strconv.Itoa(ports.AgentConfigServerHTTP) // ":5778"
 
 // Model used to distinguish the data transfer model
 type Model string
@@ -79,10 +79,10 @@ type Builder struct {
 
 // ProcessorConfiguration holds config for a processor that receives spans from Server
 type ProcessorConfiguration struct {
-	Workers  int                 `yaml:"workers"`
-	Model    Model               `yaml:"model"`
-	Protocol Protocol            `yaml:"protocol"`
-	Server   ServerConfiguration `yaml:"server"`
+	Workers  int                 `yaml:"workers"`	//
+	Model    Model               `yaml:"model"`		// "jaeger" or "zipkin"
+	Protocol Protocol            `yaml:"protocol"`	// "compact" or "binary"
+	Server   ServerConfiguration `yaml:"server"`	//
 }
 
 // ServerConfiguration holds config for a server that receives spans from the network
@@ -106,14 +106,23 @@ func (b *Builder) WithReporter(r ...reporter.Reporter) *Builder {
 
 // CreateAgent creates the Agent
 func (b *Builder) CreateAgent(primaryProxy CollectorProxy, logger *zap.Logger, mFactory metrics.Factory) (*Agent, error) {
+
 	r := b.getReporter(primaryProxy)
+
+	// 创建 Workers
 	processors, err := b.getProcessors(r, mFactory, logger)
 	if err != nil {
 		return nil, fmt.Errorf("cannot create processors: %w", err)
 	}
+
+	// 创建 Http Server
 	server := b.HTTPServer.getHTTPServer(primaryProxy.GetManager(), mFactory, logger)
+
+
 	b.publishOpts(mFactory)
 
+
+	// 创建 Agent
 	return NewAgent(processors, server, logger), nil
 }
 
@@ -145,10 +154,12 @@ func (b *Builder) publishOpts(mFactory metrics.Factory) {
 func (b *Builder) getProcessors(rep reporter.Reporter, mFactory metrics.Factory, logger *zap.Logger) ([]processors.Processor, error) {
 	retMe := make([]processors.Processor, len(b.Processors))
 	for idx, cfg := range b.Processors {
+		// 根据 "compact" or "binary" 获取 factory
 		protoFactory, ok := protocolFactoryMap[cfg.Protocol]
 		if !ok {
 			return nil, fmt.Errorf("cannot find protocol factory for protocol %v", cfg.Protocol)
 		}
+		// 根据 "jaeger" or "zipkin" 创建 processor handler
 		var handler processors.AgentProcessor
 		switch cfg.Model {
 		case jaegerModel, zipkinModel:
@@ -156,14 +167,20 @@ func (b *Builder) getProcessors(rep reporter.Reporter, mFactory metrics.Factory,
 		default:
 			return nil, fmt.Errorf("cannot find agent processor for data model %v", cfg.Model)
 		}
-		metrics := mFactory.Namespace(metrics.NSOptions{Name: "", Tags: map[string]string{
-			"protocol": string(cfg.Protocol),
-			"model":    string(cfg.Model),
-		}})
+		// 创建 metrics
+		metrics := mFactory.Namespace(metrics.NSOptions{
+			Name: "",
+			Tags: map[string]string{
+				"protocol": string(cfg.Protocol),
+				"model":    string(cfg.Model),
+			},
+		})
+		// 创建 processor
 		processor, err := cfg.GetThriftProcessor(metrics, protoFactory, handler, logger)
 		if err != nil {
 			return nil, fmt.Errorf("cannot create Thrift Processor: %w", err)
 		}
+		// 保存 processor
 		retMe[idx] = processor
 	}
 	return retMe, nil
@@ -199,8 +216,11 @@ func (c *ProcessorConfiguration) applyDefaults() {
 }
 
 func (c *ServerConfiguration) applyDefaults() {
+	// 队列大小
 	c.QueueSize = defaultInt(c.QueueSize, defaultQueueSize)
+	// 最大包大小
 	c.MaxPacketSize = defaultInt(c.MaxPacketSize, defaultMaxPacketSize)
+	//
 	c.SocketBufferSize = defaultInt(c.SocketBufferSize, 0)
 }
 
@@ -211,10 +231,15 @@ func (c *ServerConfiguration) getUDPServer(mFactory metrics.Factory) (servers.Se
 	if c.HostPort == "" {
 		return nil, fmt.Errorf("no host:port provided for udp server: %+v", *c)
 	}
+
+
+
 	transport, err := thriftudp.NewTUDPServerTransport(c.HostPort)
 	if err != nil {
 		return nil, fmt.Errorf("cannot create UDPServerTransport: %w", err)
 	}
+
+
 	if c.SocketBufferSize != 0 {
 		if err := transport.SetSocketBufferSize(c.SocketBufferSize); err != nil {
 			return nil, fmt.Errorf("cannot set UDP socket buffer size: %w", err)

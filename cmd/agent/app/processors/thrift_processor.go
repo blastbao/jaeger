@@ -101,8 +101,7 @@ func (s *ThriftProcessor) IsServing() bool {
 	return s.server.IsServing()
 }
 
-// Stop stops the serving of traffic and waits until the queue is
-// emptied by the readers
+// Stop stops the serving of traffic and waits until the queue is emptied by the readers
 func (s *ThriftProcessor) Stop() {
 	stopwatch := metrics.StartStopwatch(s.metrics.ProcessorCloseTimer)
 	s.server.Stop()
@@ -110,8 +109,7 @@ func (s *ThriftProcessor) Stop() {
 	stopwatch.Stop()
 }
 
-// processBuffer reads data off the channel and puts it into a custom transport for
-// the processor to process
+// processBuffer reads data off the channel and puts it into a custom transport for the processor to process
 func (s *ThriftProcessor) processBuffer() {
 	for readBuf := range s.server.DataChan() {
 		protocol := s.protocolPool.Get().(thrift.TProtocol)

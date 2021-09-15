@@ -60,11 +60,17 @@ func (a *Agent) GetHTTPRouter() *mux.Router {
 // It returns an error when it's immediately apparent on startup, but
 // any errors happening after starting the servers are only logged.
 func (a *Agent) Run() error {
+
+	// 监听 socket
 	listener, err := net.Listen("tcp", a.httpServer.Addr)
 	if err != nil {
 		return err
 	}
+
+	// 获取监听地址
 	a.httpAddr.Store(listener.Addr().String())
+
+	// 启动服务
 	go func() {
 		a.logger.Info("Starting jaeger-agent HTTP server", zap.Int("http-port", listener.Addr().(*net.TCPAddr).Port))
 		if err := a.httpServer.Serve(listener); err != http.ErrServerClosed {
@@ -72,9 +78,12 @@ func (a *Agent) Run() error {
 		}
 		a.logger.Info("agent's http server exiting")
 	}()
+
+	// 启动 Workers
 	for _, processor := range a.processors {
 		go processor.Serve()
 	}
+
 	return nil
 }
 

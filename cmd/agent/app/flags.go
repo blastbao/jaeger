@@ -36,6 +36,7 @@ const (
 	httpServerHostPort = "http-server.host-port"
 )
 
+// 在 agent 启动时初始化了 3 个 UDP 服务，每个服务对应处理不同的数据格式
 var defaultProcessors = []struct {
 	model    Model
 	protocol Protocol
@@ -66,13 +67,24 @@ func AddFlags(flags *flag.FlagSet) {
 // InitFromViper initializes Builder with properties retrieved from Viper.
 func (b *Builder) InitFromViper(v *viper.Viper) *Builder {
 	for _, processor := range defaultProcessors {
+
+		// Prefix 示例:
+		// 	"processor.jaeger-binary."
+		// 	"processor.jaeger-compact."
+		// 	"processor.zipkin-binary."
+		// 	"processor.zipkin-compact."
 		prefix := fmt.Sprintf(processorPrefixFmt, processor.model, processor.protocol)
-		p := &ProcessorConfiguration{Model: processor.model, Protocol: processor.protocol}
-		p.Workers = v.GetInt(prefix + suffixWorkers)
-		p.Server.QueueSize = v.GetInt(prefix + suffixServerQueueSize)
-		p.Server.MaxPacketSize = v.GetInt(prefix + suffixServerMaxPacketSize)
-		p.Server.SocketBufferSize = v.GetInt(prefix + suffixServerSocketBufferSize)
-		p.Server.HostPort = portNumToHostPort(v.GetString(prefix + suffixServerHostPort))
+
+		p := &ProcessorConfiguration{
+			Model:    processor.model,
+			Protocol: processor.protocol,
+		}
+
+		p.Workers = v.GetInt(prefix + suffixWorkers)                                      // "processor.jaeger-binary.workers"
+		p.Server.QueueSize = v.GetInt(prefix + suffixServerQueueSize)                     // "processor.jaeger-binary.server-queue-size"
+		p.Server.MaxPacketSize = v.GetInt(prefix + suffixServerMaxPacketSize)             // "processor.jaeger-binary.server-max-packet-size"
+		p.Server.SocketBufferSize = v.GetInt(prefix + suffixServerSocketBufferSize)       // "processor.jaeger-binary.server-socket-buffer-size"
+		p.Server.HostPort = portNumToHostPort(v.GetString(prefix + suffixServerHostPort)) // "processor.jaeger-binary.server-host-port"
 		b.Processors = append(b.Processors, *p)
 	}
 

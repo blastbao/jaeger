@@ -91,9 +91,14 @@ by default uses only in-memory database.`,
 			}
 			logger := svc.Logger                     // shortcut
 			rootMetricsFactory := svc.MetricsFactory // shortcut
-			metricsFactory := fork.New("internal",
+
+
+			metricsFactory := fork.New(
+				"internal",
 				jexpvar.NewFactory(10), // backend for internal opts
-				rootMetricsFactory.Namespace(metrics.NSOptions{Name: "jaeger"}))
+				rootMetricsFactory.Namespace(metrics.NSOptions{Name: "jaeger"}),
+			)
+
 			version.NewInfoMetrics(metricsFactory)
 
 			tracerCloser := initTracer(rootMetricsFactory, svc.Logger)

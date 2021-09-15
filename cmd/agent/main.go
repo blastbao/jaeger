@@ -48,16 +48,14 @@ func main() {
 		Short: "Jaeger agent is a local daemon program which collects tracing data.",
 		Long:  `Jaeger agent is a daemon program that runs on every host and receives tracing data submitted by Jaeger client libraries.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
+
 			if err := svc.Start(v); err != nil {
 				return err
 			}
+
 			logger := svc.Logger // shortcut
-			baseFactory := svc.MetricsFactory.
-				Namespace(metrics.NSOptions{Name: "jaeger"}).
-				Namespace(metrics.NSOptions{Name: "agent"})
-			mFactory := fork.New("internal",
-				jexpvar.NewFactory(10), // backend for internal opts
-				baseFactory)
+			baseFactory := svc.MetricsFactory.Namespace(metrics.NSOptions{Name: "jaeger"}).Namespace(metrics.NSOptions{Name: "agent"})
+			mFactory := fork.New("internal", jexpvar.NewFactory(10) /* backend for internal opts*/,baseFactory)
 			version.NewInfoMetrics(mFactory)
 
 			rOpts := new(reporter.Options).InitFromViper(v, logger)
@@ -65,6 +63,8 @@ func main() {
 			builders := map[reporter.Type]app.CollectorProxyBuilder{
 				reporter.GRPC: app.GRPCCollectorProxyBuilder(grpcBuilder),
 			}
+
+
 			cp, err := app.CreateCollectorProxy(app.ProxyBuilderOptions{
 				Options: *rOpts,
 				Logger:  logger,

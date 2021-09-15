@@ -76,6 +76,8 @@ func NewTBufferedServer(
 	maxPacketSize int,
 	mFactory metrics.Factory,
 ) (*TBufferedServer, error) {
+
+
 	dataChan := make(chan *ReadBuf, maxQueueSize)
 
 	var readBufPool = &sync.Pool{
@@ -84,7 +86,8 @@ func NewTBufferedServer(
 		},
 	}
 
-	res := &TBufferedServer{dataChan: dataChan,
+	res := &TBufferedServer{
+		dataChan: dataChan,
 		transport:     transport,
 		maxQueueSize:  maxQueueSize,
 		maxPacketSize: maxPacketSize,
@@ -104,6 +107,8 @@ func (s *TBufferedServer) Serve() {
 	}
 
 	for s.IsServing() {
+
+		// 从池中获取 buffer
 		readBuf := s.readBufPool.Get().(*ReadBuf)
 		n, err := s.transport.Read(readBuf.bytes)
 		if err == nil {
@@ -114,7 +119,9 @@ func (s *TBufferedServer) Serve() {
 				s.metrics.PacketsProcessed.Inc(1)
 				s.updateQueueSize(1)
 			default:
+				// 归还 buffer 到池中
 				s.readBufPool.Put(readBuf)
+				// 注意，如果写过快，agent 会丢掉过载数据
 				s.metrics.PacketsDropped.Inc(1)
 			}
 		} else {

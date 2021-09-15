@@ -24,6 +24,9 @@ import (
 // It returns adjusted Trace, which can be the same Trace updated in place.
 // If it detects a problem with the trace that prevents it from applying
 // adjustments, it must still return the original trace, and the error.
+//
+// Adjuster 对一个 Trace 对象进行某些修改，返回修改后的 Trace ，它可以是在原地更新的同一个 Trace 。
+// 如果出错导致无法修改，必须返回原始 Trace 及 error 。
 type Adjuster interface {
 	Adjust(trace *model.Trace) (*model.Trace, error)
 }

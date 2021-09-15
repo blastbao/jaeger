@@ -86,9 +86,12 @@ func (s *Service) SetHealthCheckStatus(status healthcheck.Status) {
 
 // Start bootstraps the service and starts the admin server.
 func (s *Service) Start(v *viper.Viper) error {
+
+
 	if err := TryLoadConfigFile(v); err != nil {
 		return fmt.Errorf("cannot load config file: %w", err)
 	}
+
 
 	sFlags := new(SharedFlags).InitFromViper(v)
 	newProdConfig := zap.NewProductionConfig()
@@ -103,6 +106,8 @@ func (s *Service) Start(v *viper.Viper) error {
 	} else {
 		return fmt.Errorf("cannot create logger: %w", err)
 	}
+
+
 
 	metricsBuilder := new(pMetrics.Builder).InitFromViper(v)
 	metricsFactory, err := metricsBuilder.CreateMetricsFactory("")
